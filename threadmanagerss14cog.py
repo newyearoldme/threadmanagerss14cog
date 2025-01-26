@@ -79,94 +79,94 @@ class PaginatedView(discord.ui.View):
 class ThreadManagerCog(commands.Cog):
     def __init__(self, client):
         self.client = client
-@commands.slash_command(name="close_thread", description="Закрыть ветку")
-async def close_thread(self, ctx: discord.ApplicationContext):
-    """Закрытие ветки."""
-    if not isinstance(ctx.channel, discord.Thread):
-        await ctx.respond("❌ Эта команда работает только в ветке или теме форума!", ephemeral=True)
-        return
+    @commands.slash_command(name="close_thread", description="Закрыть ветку")
+    async def close_thread(self, ctx: discord.ApplicationContext):
+        """Закрытие ветки."""
+        if not isinstance(ctx.channel, discord.Thread):
+            await ctx.respond("❌ Эта команда работает только в ветке или теме форума!", ephemeral=True)
+            return
 
-    thread = ctx.channel
+        thread = ctx.channel
 
-    # Проверка: была ли ветка уже закрыта
-    if was_thread_closed(thread.id):
-        await ctx.respond("❌ Эта ветка уже была закрыта ранее!", ephemeral=True)
-        return
+        # Проверка: была ли ветка уже закрыта
+        if was_thread_closed(thread.id):
+            await ctx.respond("❌ Эта ветка уже была закрыта ранее!", ephemeral=True)
+            return
 
-    # Логируем закрытие ветки
-    log_thread_closure(
-        user_id=ctx.author.id,
-        user_name=ctx.author.name,
-        thread_id=thread.id,
-        thread_name=thread.name,
-        channel_id=thread.parent.id,
-    )
+        # Логируем закрытие ветки
+        log_thread_closure(
+            user_id=ctx.author.id,
+            user_name=ctx.author.name,
+            thread_id=thread.id,
+            thread_name=thread.name,
+            channel_id=thread.parent.id,
+        )
 
-    # Закрываем ветку
-    await ctx.respond(f"✅ Ветка '{thread.name}' успешно закрыта!")
-    await thread.edit(archived=True, locked=True)
+        # Закрываем ветку
+        await ctx.respond(f"✅ Ветка '{thread.name}' успешно закрыта!")
+        await thread.edit(archived=True, locked=True)
 
-@commands.slash_command(name="stats", description="Показать статистику закрытых веток")
-async def stats(
-    self,
-    ctx: discord.ApplicationContext,
-    user: discord.Member,
-    channel: discord.ForumChannel,
-    start_date: str = None,
-    end_date: str = None,
-):
-    # Проверка на доступность аргументов
-    if not user or not channel:
-        await ctx.respond("Необходимо указать пользователя и канал.", ephemeral=True)
-        return
+    @commands.slash_command(name="stats", description="Показать статистику закрытых веток")
+    async def stats(
+        self,
+        ctx: discord.ApplicationContext,
+        user: discord.Member,
+        channel: discord.ForumChannel,
+        start_date: str = None,
+        end_date: str = None,
+    ):
+        # Проверка на доступность аргументов
+        if not user or not channel:
+            await ctx.respond("Необходимо указать пользователя и канал.", ephemeral=True)
+            return
 
-    # Преобразование строковых дат в datetime (если они заданы)
-    try:
-        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
-        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
-    except ValueError:
-        await ctx.respond("Неверный формат даты. Используйте формат YYYY-MM-DD.", ephemeral=True)
-        return
+        # Преобразование строковых дат в datetime (если они заданы)
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
+        except ValueError:
+            await ctx.respond("Неверный формат даты. Используйте формат YYYY-MM-DD.", ephemeral=True)
+            return
 
-    # Получение логов через CRUD
-    logs = get_thread_logs(user_id=user.id, channel_id=channel.id)
+        # Получение логов через CRUD
+        logs = get_thread_logs(user_id=user.id, channel_id=channel.id)
 
-    # Фильтрация по датам
-    if start_date_obj:
-        logs = [log for log in logs if log.closed_at >= start_date_obj]
-    if end_date_obj:
-        logs = [log for log in logs if log.closed_at <= end_date_obj]
+        # Фильтрация по датам
+        if start_date_obj:
+            logs = [log for log in logs if log.closed_at >= start_date_obj]
+        if end_date_obj:
+            logs = [log for log in logs if log.closed_at <= end_date_obj]
 
-    # Формирование ответа
-    if not logs:
-        await ctx.respond(f"У {user.mention} нет закрытых веток в канале {channel.mention} в указанный период.", ephemeral=True)
-        return
+        # Формирование ответа
+        if not logs:
+            await ctx.respond(f"У {user.mention} нет закрытых веток в канале {channel.mention} в указанный период.", ephemeral=True)
+            return
 
-    # Создание embed для пагинации
-    embeds = []
-    log_page = []
-    for index, log in enumerate(logs):
-        log_page.append(log)
-        
-        if len(log_page) == 5 or index == len(logs) - 1:
-            embed = discord.Embed(
-                title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
-                description=f"Канал: {channel.mention}",
-                color=discord.Color.blue(),
-            )
-            for log_item in log_page:
-                thread_url = f"https://discord.com/channels/{ctx.guild.id}/{log_item.thread_id}"
-                embed.add_field(
-                    name=f"Ветка: {thread_url}",
-                    value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
-                    inline=False,
+        # Создание embed для пагинации
+        embeds = []
+        log_page = []
+        for index, log in enumerate(logs):
+            log_page.append(log)
+            
+            if len(log_page) == 5 or index == len(logs) - 1:
+                embed = discord.Embed(
+                    title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
+                    description=f"Канал: {channel.mention}",
+                    color=discord.Color.blue(),
                 )
-            embeds.append(embed)
-            log_page = []
+                for log_item in log_page:
+                    thread_url = f"https://discord.com/channels/{ctx.guild.id}/{log_item.thread_id}"
+                    embed.add_field(
+                        name=f"Ветка: {thread_url}",
+                        value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                        inline=False,
+                    )
+                embeds.append(embed)
+                log_page = []
 
-    # Отправка через PaginatedView
-    view = PaginatedView(embeds)
-    await view.send(ctx)
+        # Отправка через PaginatedView
+        view = PaginatedView(embeds)
+        await view.send(ctx)
 
 
 def setup(client):
