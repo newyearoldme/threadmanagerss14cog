@@ -1,0 +1,6 @@
+main.py
+backend.py
+data
+utils/db_alchemy.py
+**/__pycache__/
+test.db
