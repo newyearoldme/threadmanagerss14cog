@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from utils.db_alchemy import get_db
 from utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
 from datetime import datetime
 
@@ -106,18 +105,34 @@ class ThreadManagerCog(commands.Cog):
         await ctx.respond(f"✅ Ветка '{thread.name}' успешно закрыта!")
         await thread.edit(archived=True, locked=True)
 
-    @commands.slash_command(name="stats", description="Показать статистику закрытых веток")
-    async def stats(
+    @commands.slash_command(name="complaints_stats", description="Показать статистику по закрытым жалобам или обжалованиям")
+    async def complaints_stats(
         self,
         ctx: discord.ApplicationContext,
         user: discord.Member,
-        channel: discord.ForumChannel,
-        start_date: str = None,
-        end_date: str = None,
+        channel: str = discord.Option(
+            description="Выберите канал",
+            choices=["жалобы", "обжалования"],
+        ),
+        start_date: str = discord.Option(
+            description="Введите начальную дату в формате YYYY-MM-DD (например, 2025-01-01)",
+            default=None,
+        ),
+        end_date: str = discord.Option(
+            description="Введите конечную дату в формате YYYY-MM-DD (например, 2025-01-31)",
+            default=None,
+        )
     ):
-        # Проверка на доступность аргументов
-        if not user or not channel:
-            await ctx.respond("Необходимо указать пользователя и канал.", ephemeral=True)
+        # Проверка, что канал корректный
+        allowed_channels = ["жалобы", "обжалования"]
+        if channel not in allowed_channels:
+            await ctx.respond(f"❌ Канал '{channel}' недопустим. Выберите из: {', '.join(allowed_channels)}.", ephemeral=True)
+            return
+
+        # Поиск канала по имени
+        guild_channel = discord.utils.get(ctx.guild.channels, name=channel)
+        if not guild_channel or not isinstance(guild_channel, discord.ForumChannel):
+            await ctx.respond(f"❌ Канал '{channel}' не найден или не является форумным.", ephemeral=True)
             return
 
         # Преобразование строковых дат в datetime (если они заданы)
@@ -125,11 +140,18 @@ class ThreadManagerCog(commands.Cog):
             start_date_obj = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
             end_date_obj = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
         except ValueError:
-            await ctx.respond("Неверный формат даты. Используйте формат YYYY-MM-DD.", ephemeral=True)
+            await ctx.respond("❌ Неверный формат даты. Используйте формат YYYY-MM-DD.", ephemeral=True)
+            return
+
+        if start_date_obj and end_date_obj and end_date_obj < start_date_obj:
+            await ctx.respond(
+                f"❌ Конечная дата ({end_date_obj.strftime('%Y-%m-%d')}) не может быть раньше начальной даты ({start_date_obj.strftime('%Y-%m-%d')}).",
+                ephemeral=True,
+            )
             return
 
         # Получение логов через CRUD
-        logs = get_thread_logs(user_id=user.id, channel_id=channel.id)
+        logs = get_thread_logs(user_id=user.id, channel_id=guild_channel.id)
 
         # Фильтрация по датам
         if start_date_obj:
@@ -137,9 +159,11 @@ class ThreadManagerCog(commands.Cog):
         if end_date_obj:
             logs = [log for log in logs if log.closed_at <= end_date_obj]
 
-        # Формирование ответа
         if not logs:
-            await ctx.respond(f"У {user.mention} нет закрытых веток в канале {channel.mention} в указанный период.", ephemeral=True)
+            await ctx.respond(
+                f"У {user.mention} нет закрытых веток в канале {guild_channel.mention} в указанный период",
+                ephemeral=True,
+            )
             return
 
         # Создание embed для пагинации
@@ -151,7 +175,7 @@ class ThreadManagerCog(commands.Cog):
             if len(log_page) == 5 or index == len(logs) - 1:
                 embed = discord.Embed(
                     title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
-                    description=f"Канал: {channel.mention}",
+                    description=f"Канал: {guild_channel.mention}",
                     color=discord.Color.blue(),
                 )
                 for log_item in log_page:
