@@ -168,25 +168,23 @@ class ThreadManagerCog(commands.Cog):
 
         # Создание embed для пагинации
         embeds = []
-        log_page = []
-        for index, log in enumerate(logs):
-            log_page.append(log)
-            
-            if len(log_page) == 5 or index == len(logs) - 1:
-                embed = discord.Embed(
-                    title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
-                    description=f"Канал: {guild_channel.mention}",
-                    color=discord.Color.blue(),
+        for i in range(0, len(logs), 5):
+            log_page = logs[i:i + 5]
+            embed = discord.Embed(
+                title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
+                description=f"Канал: {guild_channel.mention}",
+                color=discord.Color.blue(),
+            )
+
+            for log_item in log_page:
+                thread_url = f"https://discord.com/channels/{ctx.guild.id}/{log_item.thread_id}"
+                embed.add_field(
+                    name=f"Ветка: {thread_url}",
+                    value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                    inline=False,
                 )
-                for log_item in log_page:
-                    thread_url = f"https://discord.com/channels/{ctx.guild.id}/{log_item.thread_id}"
-                    embed.add_field(
-                        name=f"Ветка: {thread_url}",
-                        value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
-                        inline=False,
-                    )
-                embeds.append(embed)
-                log_page = []
+
+            embeds.append(embed)
 
         # Отправка через PaginatedView
         view = PaginatedView(embeds)
