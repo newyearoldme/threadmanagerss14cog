@@ -1,7 +1,11 @@
 import discord
 from discord.ext import commands
-from utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
 from datetime import datetime
+
+if "cogs" in __name__:
+    from .utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
+else:
+    from utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
 
 
 class PaginatedView(discord.ui.View):
