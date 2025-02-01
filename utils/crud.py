@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from utils.db_alchemy import get_db
-from utils.models import ThreadLog
+from .models import ThreadLog
 from datetime import datetime
 
-def log_thread_closure(user_id: int, user_name: str, thread_id: int, thread_name: str, channel_id: int):
+def log_thread_closure(user_id: int, thread_id: int, channel_id: int):
     """
     Логирует закрытие ветки в базе данных
     """
@@ -16,9 +16,7 @@ def log_thread_closure(user_id: int, user_name: str, thread_id: int, thread_name
 
         log = ThreadLog(
             user_id=user_id,
-            user_name=user_name,
             thread_id=thread_id,
-            thread_name=thread_name,
             channel_id=channel_id,
             closed_at=datetime.utcnow(),
         )

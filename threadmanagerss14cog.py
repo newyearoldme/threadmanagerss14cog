@@ -82,32 +82,48 @@ class PaginatedView(discord.ui.View):
 class ThreadManagerCog(commands.Cog):
     def __init__(self, client):
         self.client = client
-    @commands.slash_command(name="close_thread", description="Закрыть ветку")
-    async def close_thread(self, ctx: discord.ApplicationContext):
-        """Закрытие ветки."""
+
+class ThreadManagerCog(commands.Cog):
+    def __init__(self, client):
+        self.client = client
+
+    async def _close_thread(self, ctx: discord.ApplicationContext, expected_channel_name: str):
         if not isinstance(ctx.channel, discord.Thread):
-            await ctx.respond("❌ Эта команда работает только в ветке или теме форума!", ephemeral=True)
+            await ctx.respond("❌ Эта команда работает только в ветках или темах форума", ephemeral=True)
             return
 
         thread = ctx.channel
 
         # Проверка: была ли ветка уже закрыта
         if was_thread_closed(thread.id):
-            await ctx.respond("❌ Эта ветка уже была закрыта ранее!", ephemeral=True)
+            await ctx.respond("❌ Эта ветка уже была закрыта ранее", ephemeral=True)
+            return
+
+        parent_channel = thread.parent
+        if not parent_channel or parent_channel.name.lower() != expected_channel_name.lower():
+            await ctx.respond(f"❌ Эта команда предназначена только для канала {expected_channel_name}", ephemeral=True)
             return
 
         # Логируем закрытие ветки
         log_thread_closure(
             user_id=ctx.author.id,
-            user_name=ctx.author.name,
             thread_id=thread.id,
-            thread_name=thread.name,
-            channel_id=thread.parent.id,
+            channel_id=parent_channel.id,
         )
 
         # Закрываем ветку
-        await ctx.respond(f"✅ Ветка '{thread.name}' успешно закрыта!")
+        await ctx.respond(f"✅ Ветка {thread.name} успешно закрыта")
         await thread.edit(archived=True, locked=True)
+
+    @commands.slash_command(name="close_complaint", description="Закрыть жалобу")
+    async def close_complaint(self, ctx: discord.ApplicationContext):
+        """Закрыть ветку в жалобах"""
+        await self._close_thread(ctx, "жалобы")
+
+    @commands.slash_command(name="close_appeal", description="Закрыть обжалование")
+    async def close_appeal(self, ctx: discord.ApplicationContext):
+        """Закрыть ветку в обжалованиях"""
+        await self._close_thread(ctx, "обжалования")
 
     @commands.slash_command(name="complaints_stats", description="Показать статистику по закрытым жалобам или обжалованиям")
     async def complaints_stats(
@@ -119,11 +135,11 @@ class ThreadManagerCog(commands.Cog):
             choices=["жалобы", "обжалования"],
         ),
         start_date: str = discord.Option(
-            description="Введите начальную дату в формате YYYY-MM-DD (например, 2025-01-01)",
+            description="Введите начальную дату в формате YYYY-MM-DD (например, 2025-01-01), часовой пояс utc",
             default=None,
         ),
         end_date: str = discord.Option(
-            description="Введите конечную дату в формате YYYY-MM-DD (например, 2025-01-31)",
+            description="Введите конечную дату в формате YYYY-MM-DD (например, 2025-01-31), часовой пояс utc",
             default=None,
         )
     ):
@@ -174,9 +190,16 @@ class ThreadManagerCog(commands.Cog):
         embeds = []
         for i in range(0, len(logs), 5):
             log_page = logs[i:i + 5]
+
+            mapping = {
+                "жалобы": "жалоб",
+                "обжалования": "обжалований"
+            }
+
+            channel_type = mapping.get(channel.lower())
+
             embed = discord.Embed(
-                title=f"Статистика закрытых веток для {user.display_name} | Всего: {len(logs)}",
-                description=f"Канал: {guild_channel.mention}",
+                title = f"Статистика закрытых {channel_type} для {user.display_name}",
                 color=discord.Color.blue(),
             )
 
@@ -187,7 +210,7 @@ class ThreadManagerCog(commands.Cog):
                     value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
                     inline=False,
                 )
-
+            embed.set_footer(text=f"Общее количество: {len(logs)}")
             embeds.append(embed)
 
         # Отправка через PaginatedView
