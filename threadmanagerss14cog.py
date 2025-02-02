@@ -89,14 +89,14 @@ class ThreadManagerCog(commands.Cog):
 
     async def _close_thread(self, ctx: discord.ApplicationContext, expected_channel_name: str):
         if not isinstance(ctx.channel, discord.Thread):
-            await ctx.respond("❌ Эта команда работает только в ветках или темах форума", ephemeral=True)
+            await ctx.respond("❌ Эта команда работает только в жалобах или обжалованиях", ephemeral=True)
             return
 
         thread = ctx.channel
 
         # Проверка: была ли ветка уже закрыта
         if was_thread_closed(thread.id):
-            await ctx.respond("❌ Эта ветка уже была закрыта ранее", ephemeral=True)
+            await ctx.respond("❌ Эта тема уже была закрыта ранее", ephemeral=True)
             return
 
         parent_channel = thread.parent
@@ -112,7 +112,22 @@ class ThreadManagerCog(commands.Cog):
         )
 
         # Закрываем ветку
-        await ctx.respond(f"✅ Ветка {thread.name} успешно закрыта")
+        self.close_mapping = {
+            "жалобы": {
+                "noun": "Жалоба",
+                "verb": "закрыта"
+            },
+            "обжалования": {
+                "noun": "Обжалование",
+                "verb": "закрыто"
+            }
+        }
+
+        mapping_entry = self.close_mapping.get(expected_channel_name.lower(), {"noun": "Ветка", "verb": "закрыта"})
+        noun_text = mapping_entry["noun"]
+        verb_text = mapping_entry["verb"]
+
+        await ctx.respond(f"✅ {noun_text} {thread.name} успешно {verb_text}")
         await thread.edit(archived=True, locked=True)
 
     @commands.slash_command(name="close_complaint", description="Закрыть жалобу")
@@ -179,9 +194,15 @@ class ThreadManagerCog(commands.Cog):
         if end_date_obj:
             logs = [log for log in logs if log.closed_at <= end_date_obj]
 
+        mapping = {
+            "жалобы": "жалоб",
+            "обжалования": "обжалований"
+        }
+        channel_type = mapping.get(channel.lower())
+
         if not logs:
             await ctx.respond(
-                f"У {user.mention} нет закрытых веток в канале {guild_channel.mention} в указанный период",
+                f"У {user.mention} нет закрытых {channel_type} в указанный период",
                 ephemeral=True,
             )
             return
@@ -191,13 +212,6 @@ class ThreadManagerCog(commands.Cog):
         for i in range(0, len(logs), 5):
             log_page = logs[i:i + 5]
 
-            mapping = {
-                "жалобы": "жалоб",
-                "обжалования": "обжалований"
-            }
-
-            channel_type = mapping.get(channel.lower())
-
             embed = discord.Embed(
                 title = f"Статистика закрытых {channel_type} для {user.display_name}",
                 color=discord.Color.blue(),
@@ -206,8 +220,8 @@ class ThreadManagerCog(commands.Cog):
             for log_item in log_page:
                 thread_url = f"https://discord.com/channels/{ctx.guild.id}/{log_item.thread_id}"
                 embed.add_field(
-                    name=f"Ветка: {thread_url}",
-                    value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                    name=f"Тема: {thread_url}",
+                    value=f"Закрыта: {log_item.closed_at.strftime('%Y-%m-%d %H:%M')}",
                     inline=False,
                 )
             embed.set_footer(text=f"Общее количество: {len(logs)}")
