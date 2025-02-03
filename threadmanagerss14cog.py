@@ -147,7 +147,7 @@ class ThreadManagerCog(commands.Cog):
         user: discord.Member,
         channel: str = discord.Option(
             description="Выберите канал",
-            choices=["жалобы", "обжалования"],
+            choices=["📑┇жалобы", "📑┇обжалования"],
         ),
         start_date: str = discord.Option(
             description="Введите начальную дату в формате YYYY-MM-DD (например, 2025-01-01), часовой пояс utc",
@@ -159,7 +159,7 @@ class ThreadManagerCog(commands.Cog):
         )
     ):
         # Проверка, что канал корректный
-        allowed_channels = ["жалобы", "обжалования"]
+        allowed_channels = ["📑┇жалобы", "📑┇обжалования"]
         if channel not in allowed_channels:
             await ctx.respond(f"❌ Канал '{channel}' недопустим. Выберите из: {', '.join(allowed_channels)}.", ephemeral=True)
             return
@@ -198,7 +198,8 @@ class ThreadManagerCog(commands.Cog):
             "жалобы": "жалоб",
             "обжалования": "обжалований"
         }
-        channel_type = mapping.get(channel.lower())
+        normalized_channel = channel.split("┇")[-1].strip().lower()
+        channel_type = mapping.get(normalized_channel)
 
         if not logs:
             await ctx.respond(
