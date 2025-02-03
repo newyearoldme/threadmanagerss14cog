@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from .models import ThreadLog
 from utils.db_alchemy import engine
 
+def init_db():
+    ThreadLog.metadata.create_all(engine)
+
 def log_thread_closure(user_id: int, thread_id: int, channel_id: int):
     """
     Логирует закрытие ветки в базе данных
