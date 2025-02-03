@@ -3,9 +3,9 @@ from discord.ext import commands
 from datetime import datetime
 
 if "cogs" in __name__:
-    from .utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
+    from .utils.crud import log_thread_closure, get_thread_logs, was_thread_closed, init_db
 else:
-    from utils.crud import log_thread_closure, get_thread_logs, was_thread_closed
+    from utils.crud import log_thread_closure, get_thread_logs, was_thread_closed, init_db
 
 
 class PaginatedView(discord.ui.View):
@@ -82,6 +82,7 @@ class PaginatedView(discord.ui.View):
 class ThreadManagerCog(commands.Cog):
     def __init__(self, client):
         self.client = client
+        init_db()
 
 class ThreadManagerCog(commands.Cog):
     def __init__(self, client):
