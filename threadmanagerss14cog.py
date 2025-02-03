@@ -113,11 +113,11 @@ class ThreadManagerCog(commands.Cog):
 
         # Закрываем ветку
         self.close_mapping = {
-            "жалобы": {
+            "📑┇жалобы": {
                 "noun": "Жалоба",
                 "verb": "закрыта"
             },
-            "обжалования": {
+            "📑┇обжалования": {
                 "noun": "Обжалование",
                 "verb": "закрыто"
             }
@@ -133,12 +133,12 @@ class ThreadManagerCog(commands.Cog):
     @commands.slash_command(name="close_complaint", description="Закрыть жалобу")
     async def close_complaint(self, ctx: discord.ApplicationContext):
         """Закрыть ветку в жалобах"""
-        await self._close_thread(ctx, "жалобы")
+        await self._close_thread(ctx, "📑┇жалобы")
 
     @commands.slash_command(name="close_appeal", description="Закрыть обжалование")
     async def close_appeal(self, ctx: discord.ApplicationContext):
         """Закрыть ветку в обжалованиях"""
-        await self._close_thread(ctx, "обжалования")
+        await self._close_thread(ctx, "📑┇обжалования")
 
     @commands.slash_command(name="complaints_stats", description="Показать статистику по закрытым жалобам или обжалованиям")
     async def complaints_stats(

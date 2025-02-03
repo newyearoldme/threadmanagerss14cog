@@ -1,13 +1,15 @@
 from sqlalchemy import select
-from utils.db_alchemy import get_db
-from .models import ThreadLog
 from datetime import datetime
+from sqlalchemy.orm import Session
+
+from .models import ThreadLog
+from utils.db_alchemy import engine
 
 def log_thread_closure(user_id: int, thread_id: int, channel_id: int):
     """
     Логирует закрытие ветки в базе данных
     """
-    with get_db() as session:
+    with Session(bind=engine) as session:
         stmt = select(ThreadLog).where(ThreadLog.thread_id == thread_id)
         existing_log = session.scalars(stmt).first()
 
@@ -28,7 +30,7 @@ def get_thread_logs(user_id: int = None, channel_id: int = None):
     """
     Получает логи закрытых веток из базы данных с фильтрацией
     """
-    with get_db() as session:
+    with Session(bind=engine) as session:
         stmt = select(ThreadLog)
         if user_id:
             stmt = stmt.where(ThreadLog.user_id == user_id)
@@ -41,6 +43,6 @@ def was_thread_closed(thread_id: int):
     """
     Проверяет, была ли ветка ранее закрыта
     """
-    with get_db() as session:
+    with Session(bind=engine) as session:
         stmt = select(ThreadLog).where(ThreadLog.thread_id == thread_id)
         return session.scalars(stmt).first() is not None
