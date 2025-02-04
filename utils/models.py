@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from datetime import datetime
-from sqlalchemy import Integer, DateTime, String
+from sqlalchemy import Integer, DateTime, String, BigInteger
 
 
 class Base(DeclarativeBase):
@@ -12,6 +12,6 @@ class ThreadLog(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     thread_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     channel_id: Mapped[int] = mapped_column(Integer, nullable=False)
     closed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

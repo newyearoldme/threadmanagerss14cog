@@ -84,10 +84,6 @@ class ThreadManagerCog(commands.Cog):
         self.client = client
         init_db()
 
-class ThreadManagerCog(commands.Cog):
-    def __init__(self, client):
-        self.client = client
-
     async def _close_thread(self, ctx: discord.ApplicationContext, expected_channel_name: str):
         if not isinstance(ctx.channel, discord.Thread):
             await ctx.respond("❌ Эта команда работает только в жалобах или обжалованиях", ephemeral=True)
